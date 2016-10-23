@@ -1,17 +1,17 @@
 import atexit
 import os.path
-import mongoengine
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
-
-from flask import current_app
-from pymongo import MongoClient, ReadPreference, errors
 from subprocess import Popen, PIPE
-from pymongo.errors import InvalidURI
+
+import mongoengine
+from flask import current_app
 from mongoengine import connection
+from pymongo import MongoClient, ReadPreference, errors
+from pymongo.errors import InvalidURI
 
 __all__ = (
     'create_connection', 'disconnect', 'get_connection',
@@ -28,11 +28,14 @@ _conn = None
 _process = None
 _app_instance = current_app
 
+
 class InvalidSettingsError(Exception):
     pass
 
+
 class ConnectionError(Exception):
     pass
+
 
 def disconnect(alias=DEFAULT_CONNECTION_NAME, preserved=False):
     global _connections, _process, _tmpdir
@@ -58,6 +61,7 @@ def disconnect(alias=DEFAULT_CONNECTION_NAME, preserved=False):
         if os.path.exists(sock_file):
             os.remove("{0}/{1}".format(tempfile.gettempdir(), sock_file))
 
+
 def _validate_settings(is_test, temp_db, preserved, conn_host):
     """
     Validate unitest settings to ensure
@@ -81,10 +85,12 @@ def _validate_settings(is_test, temp_db, preserved, conn_host):
                'only when `TESTING` is set to true.')
         raise InvalidSettingsError(msg)
 
+
 def __get_app_config(key):
     return (_app_instance.get(key, False)
             if isinstance(_app_instance, dict)
             else _app_instance.config.get(key, False))
+
 
 def get_connection(alias=DEFAULT_CONNECTION_NAME, reconnect=False):
     global _connections
@@ -125,7 +131,7 @@ def get_connection(alias=DEFAULT_CONNECTION_NAME, reconnect=False):
                 return _register_test_connection(port, db_alias, preserved)
 
             elif (conn_host.startswith('mongomock://') and
-                    mongoengine.VERSION < (0, 10, 6)):
+                          mongoengine.VERSION < (0, 10, 6)):
                 # Use MongoClient from mongomock
                 try:
                     import mongomock
@@ -175,6 +181,7 @@ def get_connection(alias=DEFAULT_CONNECTION_NAME, reconnect=False):
 
     return mongoengine.connection.get_db(alias)
 
+
 def _sys_exec(cmd, shell=True, env=None):
     if env is None:
         env = os.environ
@@ -185,14 +192,17 @@ def _sys_exec(cmd, shell=True, env=None):
         raise Exception(a.communicate()[1])
     return a.communicate()[0]
 
+
 def set_global_attributes():
     setattr(connection, '_connection_settings', _connection_settings)
     setattr(connection, '_connections', _connections)
     setattr(connection, 'disconnect', disconnect)
 
+
 def get_db(alias=DEFAULT_CONNECTION_NAME, reconnect=False):
     set_global_attributes()
     return connection.get_db(alias, reconnect)
+
 
 def _register_test_connection(port, db_alias, preserved):
     global _process, _tmpdir
@@ -202,7 +212,7 @@ def _register_test_connection(port, db_alias, preserved):
     try:
         found = _sys_exec("mongod --version") or False
     except:
-        msg = 'You need `MongoDB` service installed on localhost'\
+        msg = 'You need `MongoDB` service installed on localhost' \
               ' to create a TEMP_DB instance.'
         raise RuntimeError(msg)
 
@@ -248,10 +258,11 @@ def _register_test_connection(port, db_alias, preserved):
             _connections[db_alias] = _conn
         return _conn
 
-def _resolve_settings(conn_setting, removePass=True):
 
+def _resolve_settings(conn_setting, removePass=True):
     if conn_setting and isinstance(conn_setting, dict):
-        conn_setting = dict(((k[8:] if k.startswith("MONGODB_") else k), v) for k, v in conn_setting.items() if v is not None)
+        conn_setting = dict(
+            ((k[8:] if k.startswith("MONGODB_") else k), v) for k, v in conn_setting.items() if v is not None)
         conn_setting = dict((k.lower(), v) for k, v in conn_setting.items())
 
         alias = conn_setting.get('alias', DEFAULT_CONNECTION_NAME)
@@ -262,6 +273,8 @@ def _resolve_settings(conn_setting, removePass=True):
         password = conn_setting.get('password', None)
         # Default to ReadPreference.PRIMARY if no read_preference is supplied
         read_preference = conn_setting.get('read_preference', ReadPreference.PRIMARY)
+        socket_timeout_ms = conn_setting.get('socket_timeout_ms', None)
+        connect_timeout_ms = conn_setting.get('connect_timeout_ms', None)
 
         resolved = {}
         resolved['read_preference'] = read_preference
@@ -274,6 +287,12 @@ def _resolve_settings(conn_setting, removePass=True):
         replica_set = conn_setting.pop('replicaset', None)
         if replica_set:
             resolved['replicaSet'] = replica_set
+
+        if socket_timeout_ms:
+            resolved['socketTimeoutMS'] = socket_timeout_ms
+
+        if connect_timeout_ms:
+            resolved['connectTimeoutMS'] = connect_timeout_ms
 
         host = resolved['host']
         # Handle uri style connections
@@ -294,6 +313,7 @@ def _resolve_settings(conn_setting, removePass=True):
 
         return resolved
     return conn_setting
+
 
 def fetch_connection_settings(config, removePass=True):
     """
@@ -327,6 +347,7 @@ def fetch_connection_settings(config, removePass=True):
     else:
         # Connection settings provided in standard format.
         return _resolve_settings(config, removePass)
+
 
 def create_connection(config, app):
     """
