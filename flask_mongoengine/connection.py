@@ -275,6 +275,7 @@ def _resolve_settings(conn_setting, removePass=True):
         read_preference = conn_setting.get('read_preference', ReadPreference.PRIMARY)
         socket_timeout_ms = conn_setting.get('socket_timeout_ms', None)
         connect_timeout_ms = conn_setting.get('connect_timeout_ms', None)
+        connect = conn_setting.get('connect', None)
 
         resolved = {}
         resolved['read_preference'] = read_preference
@@ -293,6 +294,9 @@ def _resolve_settings(conn_setting, removePass=True):
 
         if connect_timeout_ms:
             resolved['connectTimeoutMS'] = connect_timeout_ms
+
+        if connect:
+            resolved['connect'] = connect
 
         host = resolved['host']
         # Handle uri style connections
