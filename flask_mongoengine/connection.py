@@ -295,7 +295,7 @@ def _resolve_settings(conn_setting, removePass=True):
         if connect_timeout_ms:
             resolved['connectTimeoutMS'] = connect_timeout_ms
 
-        if connect:
+        if connect is not None:
             resolved['connect'] = connect
 
         host = resolved['host']
